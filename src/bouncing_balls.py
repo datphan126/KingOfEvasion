@@ -6,8 +6,11 @@
  
 import pygame
 import random
+import sys
+import os
 import game_definitions as gd
 from ball import Ball
+from custom_sprite import CustomSprite
  
 # Define some colors
 BLACK = (0, 0, 0)
@@ -75,6 +78,18 @@ countdown = 3
 # Select the font to use, size, bold, italics
 font = pygame.font.SysFont('Calibri', 25, True, False)
 
+# Create music list
+music_list = []
+music_list.append("TheGraveyard.mp3")
+music_list.append("DevilDragonBossFight.mp3")
+music_list.append("MikeTysonBattle.mp3")
+music_list.append("ForestFunk.mp3")
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_path, relative_path)
+
 def create_balls():
     global balls
     balls.clear()
@@ -105,6 +120,7 @@ def check_collision_with_mouse():
         if (abs(ballA.x_pos - mouse_x)**2 + abs(ballA.y_pos - mouse_y)**2) <= (ballA.size + mouse_size)**2:
             global game_state
             game_state = GAME_STATE_OVER
+            pygame.mixer.music.stop()
             break
 
 def check_collision_with_reward():
@@ -128,6 +144,14 @@ def reset_stat():
     global mouse_y
     mouse_y = 0
     create_balls()
+    
+# Play custom_sprite music randomly
+pygame.mixer.music.load(resource_path(music_list[random.randint(0,len(music_list)-1)]))
+pygame.mixer.music.set_endevent(pygame.constants.USEREVENT)
+pygame.mixer.music.play()
+
+# Background image
+background = CustomSprite(resource_path("Space.jpg"), [0,0])
 
 # -------- Main Program Loop -----------
 while not done:
@@ -140,6 +164,11 @@ while not done:
                 game_state = GAME_STATE_SELECT_MODE
             elif event.key == pygame.K_ESCAPE:
                 game_state = GAME_STATE_MENU
+                # Play custom_sprite music
+                pygame.mixer.music.stop()
+                pygame.mixer.music.load(resource_path(music_list[random.randint(0,len(music_list)-1)]))
+                pygame.mixer.music.set_endevent(pygame.constants.USEREVENT)
+                pygame.mixer.music.play()
             elif event.key == pygame.K_1 and game_state == GAME_STATE_SELECT_MODE:
                 game_difficulty = GAME_DIFFICULTY_EASY
                 game_speed = gd.GAME_SPEED_EASY
@@ -159,10 +188,20 @@ while not done:
                 game_difficulty = GAME_DIFFICULTY_IMPOSSIBLE
                 game_speed = gd.GAME_SPEED_IMPOSSIBLE
                 ball_list_size = gd.BALL_LIMIT_IMPOSSIBLE
-                game_state = GAME_STATE_COUNTDOWN   
+                game_state = GAME_STATE_COUNTDOWN
+        elif event.type == pygame.constants.USEREVENT:
+                if game_state == GAME_STATE_OVER:
+                    pygame.mixer.music.load(resource_path("Boo_sound_effect.mp3"))
+                    pygame.mixer.music.play()
+                else:
+                    pygame.mixer.music.load(resource_path(music_list[random.randint(0,len(music_list)-1)]))
+                    pygame.mixer.music.set_endevent(pygame.constants.USEREVENT)
+                    pygame.mixer.music.play()
  
-    # Set the screen background
-    screen.fill(BLACK)
+    # Set the screen custom_sprite
+#     screen.fill(BLACK)
+    screen.fill([255, 255, 255])
+    screen.blit(background.image, background.rect)
     
     if game_state == GAME_STATE_PLAY:
         # Hide the mouse cursor
@@ -222,6 +261,8 @@ while not done:
             # Draw the balls
             for ball in balls:
                 pygame.draw.circle(screen, WHITE, [ball.x_pos, ball.y_pos], ball.size)
+#                 ball_sprite = CustomSprite("Asteroid.png", [ball.x_pos, ball.y_pos])
+#                 screen.blit(ball_sprite.image, ball_sprite.rect)
             
     elif game_state == GAME_STATE_OVER:
         # Show the mouse cursor
@@ -259,6 +300,8 @@ while not done:
             # Draw the balls
             for ball in balls:
                 pygame.draw.circle(screen, WHITE, [ball.x_pos, ball.y_pos], ball.size)
+#                 ball_sprite = CustomSprite("Asteroid.png", [ball.x_pos, ball.y_pos])
+#                 screen.blit(ball_sprite.image, ball_sprite.rect)
             countdown -= 1
         pygame.time.delay(1000)
     elif game_state == GAME_STATE_SELECT_MODE:
