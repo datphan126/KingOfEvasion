@@ -7,10 +7,10 @@ Created on Apr 2, 2019
 from win32api import GetSystemMetrics
 
 # Define screen size
-SCREEN_WIDTH = GetSystemMetrics(0)
-SCREEN_HEIGHT = GetSystemMetrics(1)
-# SCREEN_WIDTH = 1920
-# SCREEN_HEIGHT = 1080
+# SCREEN_WIDTH = GetSystemMetrics(0)
+# SCREEN_HEIGHT = GetSystemMetrics(1)
+SCREEN_WIDTH = 1000
+SCREEN_HEIGHT = 800
 
 # Game Speed
 BALL_MOVE_SPEED_EASY = 10
