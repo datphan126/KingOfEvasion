@@ -40,9 +40,9 @@ pygame.init()
  
 # Set the height and width of the screen
 size = [gd.SCREEN_WIDTH, gd.SCREEN_HEIGHT]
-screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+# screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 # Window mode - Testing
-# screen = pygame.display.set_mode(size)
+screen = pygame.display.set_mode(size, pygame.FULLSCREEN | pygame)
  
 pygame.display.set_caption("King Of Evasion")
  
