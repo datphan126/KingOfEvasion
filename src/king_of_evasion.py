@@ -60,7 +60,7 @@ clock = pygame.time.Clock()
 balls = []
 # Number of balls
 ball_list_size = 0
-ball_size = 50
+ball_radius = 50
 
 # Initiate Mouse position
 mouse_x = 0
@@ -102,26 +102,36 @@ def resource_path(relative_path):
 def calculate_ball_limit():
     global ball_list_size
     if game_difficulty == GAME_DIFFICULTY_EASY:
-        ball_list_size = round(gd.BALL_LIMIT_EASY * gd.SCREEN_WIDTH)
+        ball_list_size = round(gd.BALL_LIMIT_EASY * (gd.SCREEN_WIDTH - gd.SCREEN_HEIGHT))
     elif game_difficulty == GAME_DIFFICULTY_MED:
-        ball_list_size = round(gd.BALL_LIMIT_MED * gd.SCREEN_WIDTH)
+        ball_list_size = round(gd.BALL_LIMIT_MED * (gd.SCREEN_WIDTH - gd.SCREEN_HEIGHT))
     elif game_difficulty == GAME_DIFFICULTY_HARD:
-        ball_list_size = round(gd.BALL_LIMIT_HARD * gd.SCREEN_WIDTH)
+        ball_list_size = round(gd.BALL_LIMIT_HARD * (gd.SCREEN_WIDTH - gd.SCREEN_HEIGHT))
     elif game_difficulty == GAME_DIFFICULTY_IMPOSSIBLE:
-        ball_list_size = round(gd.BALL_LIMIT_IMPOSSIBLE * gd.SCREEN_WIDTH)
+        ball_list_size = round(gd.BALL_LIMIT_IMPOSSIBLE * (gd.SCREEN_WIDTH - gd.SCREEN_HEIGHT))
 
 def create_balls():
     global balls
     balls.clear()
+    temp_ball_list = pygame.sprite.Group()
+    is_collided = True
+    ball_list_size = 40
     for count in range(1,ball_list_size+1):
-        if count <= ball_list_size/2:
-            ball_x_pos = round((gd.SCREEN_WIDTH/ball_list_size) + (count * ball_size * 3))
-            ball_y_pos = round(0.25 * gd.SCREEN_HEIGHT)
-        else:
-            ball_x_pos = round((gd.SCREEN_WIDTH/ball_list_size) + ((count - ball_list_size/2) * ball_size * 3))
-            ball_y_pos = round(0.75 * gd.SCREEN_HEIGHT)
-        ball = Ball("Ball " + str(count), ball_x_pos,ball_y_pos,ball_size,game_speed)
+        ball_sprite = CustomSprite(gd.BALL_IMG,[0,0])
+        # Randomize the location of new balls and ensure they don't collide with each other
+        while is_collided:
+            # Add 1 and Minus 1 to ensure the ball doesn't hit the borders at the game's start
+            ball_sprite.rect.x = random.randint(ball_radius + 1, gd.SCREEN_WIDTH - ball_radius - 1)
+            ball_sprite.rect.y = random.randint(ball_radius + 1, gd.SCREEN_HEIGHT - ball_radius - 1)
+            collision_list = pygame.sprite.spritecollide(ball_sprite, temp_ball_list, False)
+            if len(collision_list) == 0:
+                is_collided = False
+        
+        temp_ball_list.add(ball_sprite)
+        ball = Ball("Ball " + str(count), ball_sprite.rect.x, ball_sprite.rect.y, ball_radius, game_speed)
         balls.append(ball)
+        # Reset is_collied for verifying the next new ball
+        is_collided = True
 
 def check_ball_collision():
     for ballA in balls:
@@ -130,14 +140,14 @@ def check_ball_collision():
             if ballA.name == ballB.name:
                 continue
             # Use Pythagorean theorem to determine the collision
-            if (abs(ballA.x_pos - ballB.x_pos)**2 + abs(ballA.y_pos - ballB.y_pos)**2) <= (ballA.size + ballB.size)**2:
+            if (abs(ballA.x_pos - ballB.x_pos)**2 + abs(ballA.y_pos - ballB.y_pos)**2) <= (ballA.radius + ballB.radius)**2:
                 ballA.circle_change_y = ballA.circle_change_y * -1
                 ballA.circle_change_x = ballA.circle_change_x * -1
                 break
                 
 def check_collision_with_mouse():
     for ballA in balls:
-        if (abs(ballA.x_pos - mouse_x)**2 + abs(ballA.y_pos - mouse_y)**2) <= (ballA.size + mouse_size)**2:
+        if (abs(ballA.x_pos - mouse_x)**2 + abs(ballA.y_pos - mouse_y)**2) <= (ballA.radius + mouse_size)**2:
             global game_state
             game_state = GAME_STATE_OVER
             pygame.mixer.music.stop()
@@ -169,11 +179,14 @@ def reset_stat():
     global old_score
     old_score = 0
     create_balls()
+
+def play_background_music():
+    pygame.mixer.music.load(resource_path(music_list[random.randint(0,len(music_list)-1)]))
+    pygame.mixer.music.set_endevent(pygame.constants.USEREVENT)
+    pygame.mixer.music.play()
     
 # Play background music randomly
-pygame.mixer.music.load(resource_path(music_list[random.randint(0,len(music_list)-1)]))
-pygame.mixer.music.set_endevent(pygame.constants.USEREVENT)
-pygame.mixer.music.play()
+play_background_music()
 
 # Background image
 background = CustomSprite(resource_path(gd.BACKGROUND_IMG), [0,0])
@@ -218,9 +231,7 @@ while not done:
                 game_state = GAME_STATE_COUNTDOWN
         elif event.type == pygame.constants.USEREVENT:
                 if game_state != GAME_STATE_OVER:
-                    pygame.mixer.music.load(resource_path(music_list[random.randint(0,len(music_list)-1)]))
-                    pygame.mixer.music.set_endevent(pygame.constants.USEREVENT)
-                    pygame.mixer.music.play()
+                    play_background_music()
  
     # Set the screen background
     screen.fill([255, 255, 255])
@@ -303,8 +314,8 @@ while not done:
             
             # Draw the balls
             for ball in balls:
-#                 pygame.draw.circle(screen, WHITE, [ball.x_pos, ball.y_pos], ball.size)
-                ball_sprite = CustomSprite(gd.BALL_IMG, [ball.x_pos - ball.size, ball.y_pos - ball.size])
+#                 pygame.draw.circle(screen, WHITE, [ball.x_pos, ball.y_pos], ball.radius)
+                ball_sprite = CustomSprite(gd.BALL_IMG, [ball.x_pos - ball.radius, ball.y_pos - ball.radius])
                 screen.blit(ball_sprite.image, ball_sprite.rect)
             
     elif game_state == GAME_STATE_OVER:
@@ -351,7 +362,8 @@ while not done:
         text_y += text.get_rect().height
     elif game_state == GAME_STATE_COUNTDOWN:
         # Reset all stats and create balls based on selected difficulty
-        reset_stat()
+        if countdown == 3:
+            reset_stat()
         # Show the mouse cursor
         pygame.mouse.set_visible(1)
         if countdown < 0:
@@ -365,8 +377,8 @@ while not done:
                 screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, gd.SCREEN_HEIGHT/2 - text.get_rect().height/2])
             # Draw the balls
             for ball in balls:
-#                 pygame.draw.circle(screen, WHITE, [ball.x_pos, ball.y_pos], ball.size)
-                ball_sprite = CustomSprite(gd.BALL_IMG, [ball.x_pos - ball.size, ball.y_pos - ball.size])
+#                 pygame.draw.circle(screen, WHITE, [ball.x_pos, ball.y_pos], ball.radius)
+                ball_sprite = CustomSprite(gd.BALL_IMG, [ball.x_pos - ball.radius, ball.y_pos - ball.radius])
                 screen.blit(ball_sprite.image, ball_sprite.rect)
             countdown -= 1
         pygame.time.delay(1000)
