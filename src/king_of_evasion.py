@@ -31,6 +31,7 @@ GAME_STATE_PLAY = "PLAY"
 GAME_STATE_COUNTDOWN = "COUNTDOWN"
 GAME_STATE_SELECT_DIFFICULTY = "SELECT DIFFICULTY"
 GAME_STATE_SELECT_MODE = "SELECT MODE"
+GAME_STATE_SELECT_CONTROLLER = "SELECT CONTROLLER"
 
 # Game Difficulty definition
 GAME_DIFFICULTY_EASY = "EASY"
@@ -60,6 +61,9 @@ frame_rate = 60
 tick_rate = 30
 tick_count = 0
 timer_limit = 0
+
+# Game controller
+game_controller = gd.GAME_CONTROLLER_MOUSE
 
 # Game mode
 game_mode = GAME_MODE_NORMAL
@@ -106,7 +110,7 @@ music_list.append("MikeTysonBattle.mp3")
 music_list.append("ForestFunk.mp3")
 
 # Create ship
-ship = ship_sprite.Ship(gd.PLAYER_IMG,[0,0],25)
+ship = ship_sprite.Ship(gd.PLAYER_IMG,[gd.SHIP_RADIUS,gd.SHIP_RADIUS])
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -161,12 +165,12 @@ def check_collision_between_balls():
                 
 def check_collision_with_ship():
     for ballA in balls:
-        if (abs(ballA.x_pos - ship.rect.x)**2 + abs(ballA.y_pos - ship.rect.y)**2) <= (ballA.radius + ship.radius)**2:
+        if (abs(ballA.x_pos - ship.rect.x)**2 + abs(ballA.y_pos - ship.rect.y)**2) <= (ballA.radius + gd.SHIP_RADIUS)**2:
             game_over()
             break
 
 def check_collision_with_reward():
-    if (abs(reward_x_pos - ship.rect.x)**2 + abs(reward_y_pos - ship.rect.y)**2) <= (reward_item_size + ship.radius)**2:
+    if (abs(reward_x_pos - ship.rect.x)**2 + abs(reward_y_pos - ship.rect.y)**2) <= (reward_item_size + gd.SHIP_RADIUS)**2:
         global score
         score += 1
         global reward_item_status
@@ -195,6 +199,9 @@ def reset_stat():
     old_score = 0
     global tick_count
     tick_count = 0
+    global ship
+    ship.rect.x = gd.SHIP_RADIUS
+    ship.rect.y = gd.SHIP_RADIUS
     create_balls()
 
 def play_background_music():
@@ -219,7 +226,7 @@ while not done:
                 done = True
             # Select difficulty
             elif event.key == pygame.K_RETURN and game_state == GAME_STATE_MENU:
-                game_state = GAME_STATE_SELECT_MODE
+                game_state = GAME_STATE_SELECT_CONTROLLER
             # Return to main menu
             elif event.key == pygame.K_SPACE:
                 game_state = GAME_STATE_MENU
@@ -262,26 +269,34 @@ while not done:
                 game_mode = GAME_MODE_TIMER
                 game_state = GAME_STATE_SELECT_DIFFICULTY
             # -- End Game Mode --
-            # -- ship_sprite controlled by Keyboard --
+            # -- Controller Mode --
+            elif (event.key == pygame.K_1 or event.key == pygame.K_KP1) and game_state == GAME_STATE_SELECT_CONTROLLER:
+                game_controller = gd.GAME_CONTROLLER_MOUSE
+                game_state = GAME_STATE_SELECT_MODE
+            elif (event.key == pygame.K_2 or event.key == pygame.K_KP2) and game_state == GAME_STATE_SELECT_CONTROLLER:
+                game_controller = gd.GAME_CONTROLLER_KEYBOARD
+                game_state = GAME_STATE_SELECT_MODE
+            # -- End Controller Mode --
+            # -- ship_sprite controlled by Keyboard -- Set the speed based on the key pressed
             elif event.key == pygame.K_LEFT:
-                ship.change_ship_direction(-3, 0)
+                ship.change_ship_direction(-gd.SHIP_SPEED, 0)
             elif event.key == pygame.K_RIGHT:
-                ship.change_ship_direction(3, 0)
+                ship.change_ship_direction(gd.SHIP_SPEED, 0)
             elif event.key == pygame.K_UP:
-                ship.change_ship_direction(0, -3)
+                ship.change_ship_direction(0, -gd.SHIP_SPEED)
             elif event.key == pygame.K_DOWN:
-                ship.change_ship_direction(0, 3)
+                ship.change_ship_direction(0, gd.SHIP_SPEED)
             # -- End ship_sprite controlled by keyboard --
-        # -- ship_sprite controlled by Keyboard
+        # -- ship_sprite controlled by Keyboard -- Reset speed when key goes up
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_LEFT:
-                ship.change_ship_direction(3, 0)
+                ship.change_ship_direction(gd.SHIP_SPEED, 0)
             elif event.key == pygame.K_RIGHT:
-                ship.change_ship_direction(-3, 0)
+                ship.change_ship_direction(-gd.SHIP_SPEED, 0)
             elif event.key == pygame.K_UP:
-                ship.change_ship_direction(0, 3)
+                ship.change_ship_direction(0, gd.SHIP_SPEED)
             elif event.key == pygame.K_DOWN:
-                ship.change_ship_direction(0, -3)
+                ship.change_ship_direction(0, -gd.SHIP_SPEED)
         # -- End ship_sprite controlled by keyboard
         elif event.type == pygame.constants.USEREVENT:
                 if game_state != GAME_STATE_OVER:
@@ -331,21 +346,30 @@ while not done:
                 else:
                     ball.circle_change_y -= 1
         
-        # Mouse pointer update
-        ship_pos = pygame.mouse.get_pos()
-        ship.rect.x = ship_pos[0]
-        ship.rect.y = ship_pos[1]
+        # -- Mouse pointer update --
+        # Update ship location for keyboard players  
+        if game_controller == gd.GAME_CONTROLLER_MOUSE:
+            ship_pos = pygame.mouse.get_pos()
+            ship.rect.x = ship_pos[0]
+            ship.rect.y = ship_pos[1]
+            
+        # Update ship location for keyboard players    
+        if game_controller == gd.GAME_CONTROLLER_KEYBOARD:
+            ship.update()
+            
         # Mouse cursor should not overlap the borders
-        if ship.rect.y >= (gd.SCREEN_HEIGHT - ship.radius):
-            ship.rect.y = gd.SCREEN_HEIGHT - ship.radius
-        elif ship.rect.y <= ship.radius:
-            ship.rect.y = ship.radius
-        if ship.rect.x >= (gd.SCREEN_WIDTH - ship.radius):
-            ship.rect.x = gd.SCREEN_WIDTH - ship.radius
-        elif ship.rect.x <= ship.radius:
-            ship.rect.x = ship.radius
-        screen.blit(ship.image, [ship.rect.x - ship.radius, ship.rect.y - ship.radius])
-        # End Mouse Pointer Update
+        if ship.rect.y >= (gd.SCREEN_HEIGHT - gd.SHIP_RADIUS):
+            ship.rect.y = gd.SCREEN_HEIGHT - gd.SHIP_RADIUS
+        elif ship.rect.y <= gd.SHIP_RADIUS:
+            ship.rect.y = gd.SHIP_RADIUS
+        if ship.rect.x >= (gd.SCREEN_WIDTH - gd.SHIP_RADIUS):
+            ship.rect.x = gd.SCREEN_WIDTH - gd.SHIP_RADIUS
+        elif ship.rect.x <= gd.SHIP_RADIUS:
+            ship.rect.x = gd.SHIP_RADIUS    
+            
+        # Draw ship    
+        screen.blit(ship.image, [ship.rect.x - gd.SHIP_RADIUS, ship.rect.y - gd.SHIP_RADIUS])
+        # -- End Mouse Pointer Update --
         
         # Check if any ball collides with the ship
         check_collision_with_ship()
@@ -418,7 +442,7 @@ while not done:
         
         # Draw the player sprite on the main menu
         try:
-            player_sprite = CustomSprite(gd.PLAYER_IMG, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2 - ship.radius*2, text_y - ship.radius])
+            player_sprite = CustomSprite(gd.PLAYER_IMG, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2 - gd.SHIP_RADIUS*2, text_y - gd.SHIP_RADIUS])
             screen.blit(player_sprite.image, player_sprite.rect)
         except Exception as e:
             print(e,type(e))    
@@ -485,6 +509,20 @@ while not done:
         screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, text_y])
         text_y += text.get_rect().height
         text = title_font_1.render("2 - Timer", True, WHITE)
+        screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, text_y])
+        text_y += text.get_rect().height
+    elif game_state == GAME_STATE_SELECT_CONTROLLER:
+        pygame.mouse.set_visible(1)
+        
+        # Text height will be increased every time a new line of text is created
+        text_y = gd.SCREEN_HEIGHT/2 - text.get_rect().height/2
+        text = title_font_1.render("Select your controller type:", True, WHITE)
+        screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, text_y])
+        text_y += text.get_rect().height
+        text = title_font_1.render("1 - Mouse", True, WHITE)
+        screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, text_y])
+        text_y += text.get_rect().height
+        text = title_font_1.render("2 - Keyboard", True, WHITE)
         screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, text_y])
         text_y += text.get_rect().height
  
