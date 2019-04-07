@@ -49,3 +49,6 @@ GAME_CONTROLLER_KEYBOARD = "KEYBOARD"
 # Ship attributes
 SHIP_SPEED = 25
 SHIP_RADIUS = 25
+
+# Reward attributes
+REWARD_RADIUS = 25

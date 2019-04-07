@@ -15,8 +15,9 @@ import sys
 import os
 import game_definitions as gd
 import ship_sprite 
-from asteroid_sprite import Asteroid
-from custom_sprite import CustomSprite
+import asteroid_sprite
+import reward_sprite
+import custom_sprite
  
 # Define some colors
 BLACK = (0, 0, 0)
@@ -86,9 +87,6 @@ game_state = GAME_STATE_MENU
 
 # Reward item status - if true, item is already created. If false, item isn't created
 reward_item_status = False
-reward_item_size = 20
-reward_x_pos = 0
-reward_y_pos = 0
 score = 0
 old_score = 0
 
@@ -108,8 +106,11 @@ music_list.append("DevilDragonBossFight.mp3")
 music_list.append("MikeTysonBattle.mp3")
 music_list.append("ForestFunk.mp3")
 
-# Create ship
+# Create ship sprite
 ship = ship_sprite.Ship(gd.PLAYER_IMG,[gd.SHIP_RADIUS,gd.SHIP_RADIUS])
+
+# Create reward sprite
+reward_item = reward_sprite.Reward(gd.REWARD_IMG, [0, 0])
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -133,7 +134,7 @@ def create_asteroids():
     asteroid_list.empty()
     is_collided = True
     for count in range(1,asteroid_list_size+1):
-        asteroid = Asteroid(gd.ASTEROID_IMG,"Ball " + str(count), [0,0], gd.ASTEROID_RADIUS, asteroid_speed)
+        asteroid = asteroid_sprite.Asteroid(gd.ASTEROID_IMG,"Ball " + str(count), [0,0], gd.ASTEROID_RADIUS, asteroid_speed)
         # Randomize the location of new asteroids and ensure they don't collide with each other
         while is_collided:
             # Add 1 and Minus 1 to ensure the asteroid doesn't hit the borders at the game's start
@@ -165,7 +166,7 @@ def check_collision_with_ship():
         game_over()
 
 def check_collision_with_reward():
-    if (abs(reward_x_pos - ship.rect.x)**2 + abs(reward_y_pos - ship.rect.y)**2) <= (reward_item_size + gd.SHIP_RADIUS)**2:
+    if (abs(reward_item.rect.x - ship.rect.x)**2 + abs(reward_item.rect.y - ship.rect.y)**2) <= (gd.REWARD_RADIUS + gd.SHIP_RADIUS)**2:
         global score
         score += 1
         global reward_item_status
@@ -186,10 +187,6 @@ def reset_stat():
     score = 0
     global reward_item_status
     reward_item_status = False
-    global reward_x_pos
-    reward_x_pos = 0
-    global reward_y_pos
-    reward_y_pos = 0
     global old_score
     old_score = 0
     global tick_count
@@ -210,7 +207,7 @@ def play_background_music():
 play_background_music()
 
 # Background image
-background = CustomSprite(resource_path(gd.BACKGROUND_IMG), [0,0])
+background = custom_sprite.CustomSprite(resource_path(gd.BACKGROUND_IMG), [0,0])
 
 # -------- Main Program Loop -----------
 while not done:
@@ -379,23 +376,21 @@ while not done:
         if game_state == GAME_STATE_PLAY:
             # Create reward item
             if reward_item_status == False:
-                reward_x_pos = random.randint(0,gd.SCREEN_WIDTH - reward_item_size) + reward_item_size
-                reward_y_pos = random.randint(0,gd.SCREEN_HEIGHT - reward_item_size) + reward_item_size
+                reward_item.rect.x = random.randint(0,gd.SCREEN_WIDTH - gd.REWARD_RADIUS) + gd.REWARD_RADIUS
+                reward_item.rect.y = random.randint(0,gd.SCREEN_HEIGHT - gd.REWARD_RADIUS) + gd.REWARD_RADIUS
                 # Reward item should not overlap the borders
-                if reward_y_pos >= (gd.SCREEN_HEIGHT - reward_item_size):
-                    reward_y_pos = gd.SCREEN_HEIGHT - reward_item_size
-                elif reward_y_pos <= reward_item_size:
-                    reward_y_pos = reward_item_size
-                if reward_x_pos >= (gd.SCREEN_WIDTH - reward_item_size):
-                    reward_x_pos = gd.SCREEN_WIDTH - reward_item_size
-                elif reward_x_pos <= reward_item_size:
-                    reward_x_pos = reward_item_size
-                reward_item_sprite = CustomSprite(gd.REWARD_IMG, [reward_x_pos - reward_item_size, reward_y_pos - reward_item_size])
-                screen.blit(reward_item_sprite.image, reward_item_sprite.rect)
+                if reward_item.rect.y >= (gd.SCREEN_HEIGHT - gd.REWARD_RADIUS):
+                    reward_item.rect.y = gd.SCREEN_HEIGHT - gd.REWARD_RADIUS
+                elif reward_item.rect.y <= gd.REWARD_RADIUS:
+                    reward_item.rect.y = gd.REWARD_RADIUS
+                if reward_item.rect.x >= (gd.SCREEN_WIDTH - gd.REWARD_RADIUS):
+                    reward_item.rect.x = gd.SCREEN_WIDTH - gd.REWARD_RADIUS
+                elif reward_item.rect.x <= gd.REWARD_RADIUS:
+                    reward_item.rect.x = gd.REWARD_RADIUS
+                screen.blit(reward_item.image, [reward_item.rect.x - gd.REWARD_RADIUS, reward_item.rect.y - gd.REWARD_RADIUS])
                 reward_item_status = True
             else:
-                reward_item_sprite = CustomSprite(gd.REWARD_IMG, [reward_x_pos - reward_item_size, reward_y_pos - reward_item_size])
-                screen.blit(reward_item_sprite.image, reward_item_sprite.rect)
+                screen.blit(reward_item.image, [reward_item.rect.x - gd.REWARD_RADIUS, reward_item.rect.y - gd.REWARD_RADIUS])
                 
             # Check if the ship collides with the reward item
             check_collision_with_reward()
@@ -446,8 +441,8 @@ while not done:
         
         # Draw the player sprite on the main menu
         try:
-            player_sprite = CustomSprite(gd.PLAYER_IMG, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2 - gd.SHIP_RADIUS*2, text_y - gd.SHIP_RADIUS])
-            screen.blit(player_sprite.image, player_sprite.rect)
+            icon_sprite = custom_sprite.CustomSprite(gd.PLAYER_IMG, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2 - gd.SHIP_RADIUS*2, text_y - gd.SHIP_RADIUS])
+            screen.blit(icon_sprite.image, icon_sprite.rect)
         except Exception as e:
             print(e,type(e))    
                     
