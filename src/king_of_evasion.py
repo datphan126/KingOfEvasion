@@ -13,6 +13,7 @@ import pygame
 import random
 import sys
 import os
+import csv
 import game_definitions as gd
 import ship_sprite 
 import asteroid_sprite
@@ -93,7 +94,7 @@ old_score = 0
 # Countdown before the match starts
 countdown = 3
 
-# Select the font to use, size, bold, italics
+# Fonts
 normal_font = pygame.font.SysFont('Calibri', 25, True, False)
 title_font_1 = pygame.font.SysFont('Calibri', 50, True, False)
 title_font_2 = pygame.font.SysFont('Calibri', 130, True, False)
@@ -105,6 +106,9 @@ music_list.append("TheGraveyard.mp3")
 music_list.append("DevilDragonBossFight.mp3")
 music_list.append("MikeTysonBattle.mp3")
 music_list.append("ForestFunk.mp3")
+
+# Highscore dict
+highscore_dict = {}
 
 # Create ship sprite
 ship = ship_sprite.Ship(gd.PLAYER_IMG,[gd.SHIP_RADIUS,gd.SHIP_RADIUS])
@@ -161,9 +165,13 @@ def check_collision_between_asteroids():
                 break
                 
 def check_collision_with_ship():
-    collision_list = pygame.sprite.spritecollide(ship, asteroid_list, False)
-    if len(collision_list) != 0:
-        game_over()
+#     collision_list = pygame.sprite.spritecollide(ship, asteroid_list, False)
+#     if len(collision_list) != 0:
+#         game_over()
+    for asteroid in asteroid_list:
+        if (abs(asteroid.rect.x - ship.rect.x)**2 + abs(asteroid.rect.y - ship.rect.y)**2) <= (gd.ASTEROID_RADIUS + gd.SHIP_RADIUS)**2:
+            game_over()
+            break
 
 def check_collision_with_reward():
     if (abs(reward_item.rect.x - ship.rect.x)**2 + abs(reward_item.rect.y - ship.rect.y)**2) <= (gd.REWARD_RADIUS + gd.SHIP_RADIUS)**2:
@@ -203,6 +211,44 @@ def play_background_music():
     pygame.mixer.music.set_endevent(pygame.constants.USEREVENT)
     pygame.mixer.music.play()
     
+# def update_highscore():
+#     try:
+#         for count in range(1, len(highscore_dict)):
+#             if score > 
+#     except Exception:
+#         pass   
+    
+def load_highscore():
+    try:
+        with open(gd.HIGHSCORE_FILE_NAME) as csv_file:
+            csv_reader = csv.DictReader(csv_file)
+            line_count = 0
+            for row in csv_reader:
+                if line_count == 0:
+                    line_count += 1                
+                highscore_dict[line_count] = row["Score"]
+                line_count += 1
+    except FileNotFoundError:
+        print("Highscore file does not exist!")
+        
+def save_highscore():
+    if len(highscore_dict) == 0:
+        return
+    
+    try:
+        with open(gd.HIGHSCORE_FILE_NAME, mode='w') as csv_file:
+            fieldnames = ["Rank","Score"]
+                
+            writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+            writer.writeheader()
+            for line_count in range(1,len(highscore_dict)):
+                writer.writerow({'Rank': line_count, 'Score': highscore_dict[line_count]})
+    except Exception as e:
+        print(e, type(e))
+   
+# Load high scores
+load_highscore()
+ 
 # Play background music randomly
 play_background_music()
 
@@ -229,7 +275,7 @@ while not done:
                 pygame.mixer.music.load(resource_path(music_list[random.randint(0,len(music_list)-1)]))
                 pygame.mixer.music.set_endevent(pygame.constants.USEREVENT)
                 pygame.mixer.music.play()
-            # --  Difficulty --
+            # -- Start Difficulty --
             elif (event.key == pygame.K_1 or event.key == pygame.K_KP1) and game_state == GAME_STATE_SELECT_DIFFICULTY:
                 game_difficulty = GAME_DIFFICULTY_EASY
                 asteroid_speed = gd.ASTEROID_MOVE_SPEED_EASY
@@ -254,7 +300,7 @@ while not done:
                 timer_limit = gd.TIMER_LIMIT_IMPOSSIBLE
                 calculate_asteroid_limit()
                 game_state = GAME_STATE_COUNTDOWN
-            # -- End Difficulty --
+            # -- Difficulty --
             # -- Game Mode --
             elif (event.key == pygame.K_1 or event.key == pygame.K_KP1) and game_state == GAME_STATE_SELECT_MODE:
                 game_mode = GAME_MODE_NORMAL
@@ -370,8 +416,6 @@ while not done:
         screen.blit(ship.image, [ship.rect.x - gd.SHIP_RADIUS, ship.rect.y - gd.SHIP_RADIUS])
         # -- End Mouse Pointer Update --
         
-        # Check if any asteroid collides with the ship
-        check_collision_with_ship()
         
         if game_state == GAME_STATE_PLAY:
             # Create reward item
@@ -405,6 +449,9 @@ while not done:
             # Move asteroids
             for asteroid in asteroid_list:
                 asteroid.move_asteroid()
+                
+            # Check if any asteroid collides with the ship
+            check_collision_with_ship()
             
             # Draw the asteroids
             for asteroid in asteroid_list:
@@ -531,5 +578,7 @@ while not done:
     # Go ahead and update the screen with what we've drawn.
     pygame.display.flip()
 
+# Save highscore before quitting
+save_highscore()
 # Close everything down
 pygame.quit()

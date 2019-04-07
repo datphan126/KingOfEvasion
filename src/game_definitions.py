@@ -52,3 +52,6 @@ SHIP_RADIUS = 25
 
 # Reward attributes
 REWARD_RADIUS = 25
+
+# Highscore filename
+HIGHSCORE_FILE_NAME = "highscores.csv"
