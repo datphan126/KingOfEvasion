@@ -14,7 +14,6 @@ def resource_path(relative_path):
 
 class Ship(pygame.sprite.Sprite):
     def __init__(self, image_file, location):
-#         pygame.sprite.Sprite.__init__(self)  #call Sprite initializer
         # Call the parent class (Sprite) constructor
         super().__init__() 
         self.image = pygame.image.load(resource_path(image_file))

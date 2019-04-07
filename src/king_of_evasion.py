@@ -4,7 +4,7 @@
  There are four difficulty modes in this game:
  Easy, Medium, Hard, and Impossible
  
- After gaining a specific amount of points, the speed of balls will increase
+ After gaining a specific amount of points, the speed of asteroids will increase
  
  Author: Dat Phan
 """
@@ -15,7 +15,7 @@ import sys
 import os
 import game_definitions as gd
 import ship_sprite 
-from ball import Ball
+from asteroid_sprite import Asteroid
 from custom_sprite import CustomSprite
  
 # Define some colors
@@ -71,17 +71,16 @@ game_mode = GAME_MODE_NORMAL
 # Game difficulty
 game_difficulty = GAME_DIFFICULTY_EASY
 
-# Game speed - Default speed is Easy mode's speed
-game_speed = gd.BALL_MOVE_SPEED_EASY
+# Asteroid speed - Default speed is Easy mode's speed
+asteroid_speed = gd.ASTEROID_MOVE_SPEED_EASY
  
 # Used to manage how fast the screen updates
 clock = pygame.time.Clock()
 
-# Create new ball list
-balls = []
-# Number of balls
-ball_list_size = 0
-ball_radius = 50
+# Create new asteroid list
+asteroid_list = pygame.sprite.Group()
+# Number of asteroids
+asteroid_list_size = 0
 
 game_state = GAME_STATE_MENU
 
@@ -117,57 +116,53 @@ def resource_path(relative_path):
     base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
     return os.path.join(base_path, relative_path)
 
-# Calculate ball limit based on selected difficulty
-def calculate_ball_limit():
-    global ball_list_size
+# Calculate asteroid limit based on selected difficulty and screen size
+def calculate_asteroid_limit():
+    global asteroid_list_size
     if game_difficulty == GAME_DIFFICULTY_EASY:
-        ball_list_size = round(gd.BALL_LIMIT_EASY * (gd.SCREEN_WIDTH - gd.SCREEN_HEIGHT))
+        asteroid_list_size = round(gd.ASTEROID_LIMIT_EASY * (gd.SCREEN_WIDTH - gd.SCREEN_HEIGHT))
     elif game_difficulty == GAME_DIFFICULTY_MED:
-        ball_list_size = round(gd.BALL_LIMIT_MED * (gd.SCREEN_WIDTH - gd.SCREEN_HEIGHT))
+        asteroid_list_size = round(gd.ASTEROID_LIMIT_MED * (gd.SCREEN_WIDTH - gd.SCREEN_HEIGHT))
     elif game_difficulty == GAME_DIFFICULTY_HARD:
-        ball_list_size = round(gd.BALL_LIMIT_HARD * (gd.SCREEN_WIDTH - gd.SCREEN_HEIGHT))
+        asteroid_list_size = round(gd.ASTEROID_LIMIT_HARD * (gd.SCREEN_WIDTH - gd.SCREEN_HEIGHT))
     elif game_difficulty == GAME_DIFFICULTY_IMPOSSIBLE:
-        ball_list_size = round(gd.BALL_LIMIT_IMPOSSIBLE * (gd.SCREEN_WIDTH - gd.SCREEN_HEIGHT))
+        asteroid_list_size = round(gd.ASTEROID_LIMIT_IMPOSSIBLE * (gd.SCREEN_WIDTH - gd.SCREEN_HEIGHT))
 
-def create_balls():
-    global balls
-    balls.clear()
-    temp_ball_list = pygame.sprite.Group()
+def create_asteroids():
+    global asteroid_list
+    asteroid_list.empty()
     is_collided = True
-    for count in range(1,ball_list_size+1):
-        ball_sprite = CustomSprite(gd.BALL_IMG,[0,0])
-        # Randomize the location of new balls and ensure they don't collide with each other
+    for count in range(1,asteroid_list_size+1):
+        asteroid = Asteroid(gd.ASTEROID_IMG,"Ball " + str(count), [0,0], gd.ASTEROID_RADIUS, asteroid_speed)
+        # Randomize the location of new asteroids and ensure they don't collide with each other
         while is_collided:
-            # Add 1 and Minus 1 to ensure the ball doesn't hit the borders at the game's start
-            ball_sprite.rect.x = random.randint(ball_radius + 1, gd.SCREEN_WIDTH - ball_radius - 1)
-            ball_sprite.rect.y = random.randint(ball_radius + 1, gd.SCREEN_HEIGHT - ball_radius - 1)
-            collision_list = pygame.sprite.spritecollide(ball_sprite, temp_ball_list, False)
+            # Add 1 and Minus 1 to ensure the asteroid doesn't hit the borders at the game's start
+            asteroid.rect.x = random.randint(gd.ASTEROID_RADIUS + 1, gd.SCREEN_WIDTH - gd.ASTEROID_RADIUS - 1)
+            asteroid.rect.y = random.randint(gd.ASTEROID_RADIUS + 1, gd.SCREEN_HEIGHT - gd.ASTEROID_RADIUS - 1)
+            collision_list = pygame.sprite.spritecollide(asteroid, asteroid_list, False)
             if len(collision_list) == 0:
                 is_collided = False
         
-        temp_ball_list.add(ball_sprite)
-        ball = Ball("Ball " + str(count), ball_sprite.rect.x, ball_sprite.rect.y, ball_radius, game_speed)
-        balls.append(ball)
-        # Reset is_collied for verifying the next new ball
+        asteroid_list.add(asteroid)
+        # Reset is_collied for verifying the next new asteroid
         is_collided = True
 
-def check_collision_between_balls():
-    for ballA in balls:
-        for ballB in balls:
-            # Ignore if same ball
-            if ballA.name == ballB.name:
+def check_collision_between_asteroids():
+    for asteroidA in asteroid_list:
+        for asteroidB in asteroid_list:
+            # Ignore if same asteroid
+            if asteroidA.name == asteroidB.name:
                 continue
-            # Use Pythagorean theorem to determine the collision
-            if (abs(ballA.x_pos - ballB.x_pos)**2 + abs(ballA.y_pos - ballB.y_pos)**2) <= (ballA.radius + ballB.radius)**2:
-                ballA.circle_change_y = ballA.circle_change_y * -1
-                ballA.circle_change_x = ballA.circle_change_x * -1
+            # Use Pythagorean theorem to detect the collision
+            if (abs(asteroidA.rect.x - asteroidB.rect.x)**2 + abs(asteroidA.rect.y - asteroidB.rect.y)**2) <= (asteroidA.radius + asteroidB.radius)**2:
+                asteroidA.change_y = asteroidA.change_y * -1
+                asteroidA.change_x = asteroidA.change_x * -1
                 break
                 
 def check_collision_with_ship():
-    for ballA in balls:
-        if (abs(ballA.x_pos - ship.rect.x)**2 + abs(ballA.y_pos - ship.rect.y)**2) <= (ballA.radius + gd.SHIP_RADIUS)**2:
-            game_over()
-            break
+    collision_list = pygame.sprite.spritecollide(ship, asteroid_list, False)
+    if len(collision_list) != 0:
+        game_over()
 
 def check_collision_with_reward():
     if (abs(reward_x_pos - ship.rect.x)**2 + abs(reward_y_pos - ship.rect.y)**2) <= (reward_item_size + gd.SHIP_RADIUS)**2:
@@ -204,7 +199,7 @@ def reset_stat():
     ship.rect.y = gd.SHIP_RADIUS
     global countdown
     countdown = 3
-    create_balls()
+    create_asteroids()
 
 def play_background_music():
     pygame.mixer.music.load(resource_path(music_list[random.randint(0,len(music_list)-1)]))
@@ -240,27 +235,27 @@ while not done:
             # --  Difficulty --
             elif (event.key == pygame.K_1 or event.key == pygame.K_KP1) and game_state == GAME_STATE_SELECT_DIFFICULTY:
                 game_difficulty = GAME_DIFFICULTY_EASY
-                game_speed = gd.BALL_MOVE_SPEED_EASY
+                asteroid_speed = gd.ASTEROID_MOVE_SPEED_EASY
                 timer_limit = gd.TIMER_LIMIT_EASY
-                calculate_ball_limit()
+                calculate_asteroid_limit()
                 game_state = GAME_STATE_COUNTDOWN
             elif (event.key == pygame.K_2 or event.key == pygame.K_KP2) and game_state == GAME_STATE_SELECT_DIFFICULTY:
                 game_difficulty = GAME_DIFFICULTY_MED
-                game_speed = gd.BALL_MOVE_SPEED_MED
+                asteroid_speed = gd.ASTEROID_MOVE_SPEED_MED
                 timer_limit = gd.TIMER_LIMIT_MED
-                calculate_ball_limit()
+                calculate_asteroid_limit()
                 game_state = GAME_STATE_COUNTDOWN
             elif (event.key == pygame.K_3 or event.key == pygame.K_KP3) and game_state == GAME_STATE_SELECT_DIFFICULTY:
                 game_difficulty = GAME_DIFFICULTY_HARD
-                game_speed = gd.BALL_MOVE_SPEED_HARD
+                asteroid_speed = gd.ASTEROID_MOVE_SPEED_HARD
                 timer_limit = gd.TIMER_LIMIT_HARD
-                calculate_ball_limit()
+                calculate_asteroid_limit()
                 game_state = GAME_STATE_COUNTDOWN
             elif (event.key == pygame.K_4 or event.key == pygame.K_KP4) and game_state == GAME_STATE_SELECT_DIFFICULTY:
                 game_difficulty = GAME_DIFFICULTY_IMPOSSIBLE
-                game_speed = gd.BALL_MOVE_SPEED_IMPOSSIBLE
+                asteroid_speed = gd.ASTEROID_MOVE_SPEED_IMPOSSIBLE
                 timer_limit = gd.TIMER_LIMIT_IMPOSSIBLE
-                calculate_ball_limit()
+                calculate_asteroid_limit()
                 game_state = GAME_STATE_COUNTDOWN
             # -- End Difficulty --
             # -- Game Mode --
@@ -339,19 +334,19 @@ while not done:
             tick_count += 1
         # --End Timer Update --
         
-        # Increase balls' speed
+        # Increase asteroids' speed
         if (score - old_score) == gd.SPEED_INCREASE_POINTS:
             old_score = score
-            for ball in balls:
-                #Need to check direction of balls in order to increase speed correctly
-                if ball.circle_change_x > 0:
-                    ball.circle_change_x += 1
+            for asteroid in asteroid_list:
+                #Need to check direction of asteroids in order to increase speed correctly
+                if asteroid.change_x > 0:
+                    asteroid.change_x += 1
                 else:
-                    ball.circle_change_x -= 1
-                if ball.circle_change_y > 0:
-                    ball.circle_change_y += 1
+                    asteroid.change_x -= 1
+                if asteroid.change_y > 0:
+                    asteroid.change_y += 1
                 else:
-                    ball.circle_change_y -= 1
+                    asteroid.change_y -= 1
         
         # -- Mouse pointer update --
         # Update ship location for keyboard players  
@@ -378,7 +373,7 @@ while not done:
         screen.blit(ship.image, [ship.rect.x - gd.SHIP_RADIUS, ship.rect.y - gd.SHIP_RADIUS])
         # -- End Mouse Pointer Update --
         
-        # Check if any ball collides with the ship
+        # Check if any asteroid collides with the ship
         check_collision_with_ship()
         
         if game_state == GAME_STATE_PLAY:
@@ -409,17 +404,16 @@ while not done:
             textSmallScore = normal_font.render("Score: " + str(score), True, WHITE)
             screen.blit(textSmallScore, [gd.SCREEN_WIDTH - 100, 0])
             
-            # Check if balls collide each other
-            check_collision_between_balls()
+            # Check if asteroids collide each other
+            check_collision_between_asteroids()
          
-            # Move balls
-            for ball in balls:
-                ball.move_ball()
+            # Move asteroids
+            for asteroid in asteroid_list:
+                asteroid.move_asteroid()
             
-            # Draw the balls
-            for ball in balls:
-                ball_sprite = CustomSprite(gd.BALL_IMG, [ball.x_pos - ball.radius, ball.y_pos - ball.radius])
-                screen.blit(ball_sprite.image, ball_sprite.rect)
+            # Draw the asteroids
+            for asteroid in asteroid_list:
+                screen.blit(asteroid.image, [asteroid.rect.x - gd.ASTEROID_RADIUS, asteroid.rect.y - gd.ASTEROID_RADIUS])
             
     elif game_state == GAME_STATE_OVER:
         # Show the ship cursor
@@ -467,7 +461,7 @@ while not done:
         screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, text_y])
         text_y += text.get_rect().height
     elif game_state == GAME_STATE_COUNTDOWN:
-        # Reset all stats and create balls based on selected difficulty
+        # Reset all stats and create asteroids based on selected difficulty and screen size
         if countdown == 3:
             reset_stat()
         # Show the ship cursor
@@ -475,10 +469,9 @@ while not done:
         if countdown < 0:
             game_state = GAME_STATE_PLAY
         else:
-            # Draw the balls
-            for ball in balls:
-                ball_sprite = CustomSprite(gd.BALL_IMG, [ball.x_pos - ball.radius, ball.y_pos - ball.radius])
-                screen.blit(ball_sprite.image, ball_sprite.rect)
+            # Draw the asteroids
+            for asteroid in asteroid_list:
+                screen.blit(asteroid.image, [asteroid.rect.x - gd.ASTEROID_RADIUS, asteroid.rect.y - gd.ASTEROID_RADIUS])
             if countdown == 0:
                 text = countdown_font.render("GO", True, WHITE)
                 screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, gd.SCREEN_HEIGHT/2 - text.get_rect().height/2])
