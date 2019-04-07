@@ -25,8 +25,8 @@ class Ship(pygame.sprite.Sprite):
         self.change_x = 0
         self.change_y = 0
         
-    def change_ship_direction(self, x, y):
-        # Change the speed of the ship
+    def move_ship(self, x, y):
+        # Change the moving direction of the ship
         self.change_x += x
         self.change_y += y
  

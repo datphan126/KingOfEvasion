@@ -202,6 +202,8 @@ def reset_stat():
     global ship
     ship.rect.x = gd.SHIP_RADIUS
     ship.rect.y = gd.SHIP_RADIUS
+    global countdown
+    countdown = 3
     create_balls()
 
 def play_background_music():
@@ -279,24 +281,29 @@ while not done:
             # -- End Controller Mode --
             # -- ship_sprite controlled by Keyboard -- Set the speed based on the key pressed
             elif event.key == pygame.K_LEFT:
-                ship.change_ship_direction(-gd.SHIP_SPEED, 0)
+                ship.move_ship(-gd.SHIP_SPEED, 0)
             elif event.key == pygame.K_RIGHT:
-                ship.change_ship_direction(gd.SHIP_SPEED, 0)
+                ship.move_ship(gd.SHIP_SPEED, 0)
             elif event.key == pygame.K_UP:
-                ship.change_ship_direction(0, -gd.SHIP_SPEED)
+                ship.move_ship(0, -gd.SHIP_SPEED)
             elif event.key == pygame.K_DOWN:
-                ship.change_ship_direction(0, gd.SHIP_SPEED)
+                ship.move_ship(0, gd.SHIP_SPEED)
             # -- End ship_sprite controlled by keyboard --
+            # Retry option
+            elif event.key == pygame.K_BACKSPACE and game_state == GAME_STATE_OVER:
+                reset_stat()
+                play_background_music()
+                game_state = GAME_STATE_COUNTDOWN
         # -- ship_sprite controlled by Keyboard -- Reset speed when key goes up
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_LEFT:
-                ship.change_ship_direction(gd.SHIP_SPEED, 0)
+                ship.move_ship(gd.SHIP_SPEED, 0)
             elif event.key == pygame.K_RIGHT:
-                ship.change_ship_direction(-gd.SHIP_SPEED, 0)
+                ship.move_ship(-gd.SHIP_SPEED, 0)
             elif event.key == pygame.K_UP:
-                ship.change_ship_direction(0, gd.SHIP_SPEED)
+                ship.move_ship(0, gd.SHIP_SPEED)
             elif event.key == pygame.K_DOWN:
-                ship.change_ship_direction(0, -gd.SHIP_SPEED)
+                ship.move_ship(0, -gd.SHIP_SPEED)
         # -- End ship_sprite controlled by keyboard
         elif event.type == pygame.constants.USEREVENT:
                 if game_state != GAME_STATE_OVER:
@@ -424,6 +431,9 @@ while not done:
         screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, text_y])
         text_y += text.get_rect().height
         text = normal_font.render(game_difficulty + " - Score: " + str(score), True, WHITE)
+        screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, text_y])
+        text_y += text.get_rect().height
+        text = normal_font.render("Press BACKSPACE to retry", True, WHITE)
         screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, text_y])
         text_y += text.get_rect().height
         text = normal_font.render("Press SPACE BAR to return to main menu", True, WHITE)
