@@ -32,3 +32,9 @@ BALL_IMG = "Asteroid.png"
 BACKGROUND_IMG = "Space2.jpg"
 PLAYER_IMG = "ufo.png"
 REWARD_IMG = "star.png"
+
+# Timer limit - In seconds
+TIMER_LIMIT_EASY = 15
+TIMER_LIMIT_MED = 10
+TIMER_LIMIT_HARD = 10
+TIMER_LIMIT_IMPOSSIBLE = 8
