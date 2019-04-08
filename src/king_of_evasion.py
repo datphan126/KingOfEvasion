@@ -32,8 +32,10 @@ GAME_STATE_MENU = "MENU"
 GAME_STATE_PLAY = "PLAY"
 GAME_STATE_COUNTDOWN = "COUNTDOWN"
 GAME_STATE_SELECT_DIFFICULTY = "SELECT DIFFICULTY"
-GAME_STATE_SELECT_MODE = "SELECT MODE"
+GAME_STATE_SELECT_GAME_MODE = "SELECT GAME MODE"
 GAME_STATE_SELECT_CONTROLLER = "SELECT CONTROLLER"
+GAME_STATE_VIEW_HIGHSCORE = "VIEW HIGHSCORE"
+GAME_STATE_SELECT_HIGHSCORE_MODE = "SELECT HIGHSCORE MODE"
 
 # Game Difficulty definition
 GAME_DIFFICULTY_EASY = "EASY"
@@ -42,8 +44,8 @@ GAME_DIFFICULTY_HARD = "HARD"
 GAME_DIFFICULTY_IMPOSSIBLE = "IMPOSSIBLE"
 
 # Game modes
-GAME_MODE_NORMAL = "NORMAL_MODE"
-GAME_MODE_TIMER = "TIMER_MODE"
+GAME_MODE_NORMAL = "Normal Mode"
+GAME_MODE_TIMER = "Timer Mode"
 
 pygame.init()
  
@@ -63,6 +65,9 @@ frame_rate = 60
 tick_rate = 30
 tick_count = 0
 timer_limit = 0
+
+# Highscore game mode - Used to switch views of game modes
+highscore_view_mode = gd.HIGHSCORE_VIEW_MODE_NORMAL
 
 # Game controller
 game_controller = gd.GAME_CONTROLLER_MOUSE
@@ -165,9 +170,6 @@ def check_collision_between_asteroids():
                 break
                 
 def check_collision_with_ship():
-#     collision_list = pygame.sprite.spritecollide(ship, asteroid_list, False)
-#     if len(collision_list) != 0:
-#         game_over()
     for asteroid in asteroid_list:
         if (abs(asteroid.rect.x - ship.rect.x)**2 + abs(asteroid.rect.y - ship.rect.y)**2) <= (gd.ASTEROID_RADIUS + gd.SHIP_RADIUS)**2:
             game_over()
@@ -183,6 +185,7 @@ def check_collision_with_reward():
         tick_count = 0
 
 def game_over():
+    update_highscore(score)
     global game_state
     game_state = GAME_STATE_OVER
     pygame.mixer.music.stop()
@@ -211,40 +214,100 @@ def play_background_music():
     pygame.mixer.music.set_endevent(pygame.constants.USEREVENT)
     pygame.mixer.music.play()
     
-# def update_highscore():
-#     try:
-#         for count in range(1, len(highscore_dict)):
-#             if score > 
-#     except Exception:
-#         pass   
+def initialize_highscore_list():
+    global highscore_dict
+    game_difficulty_count = 1
+    
+    # Normal mode
+    difficulty_normal_mode = {}
+    while(game_difficulty_count <= gd.NUM_OF_DIFFICULTIES):
+        scores = []
+        # Create empty highscore list
+        for score_count in range(0, gd.HIGHSCORE_LIST_SIZE):
+            scores.append(0)
+        # Create difficulty dictionary
+        if game_difficulty_count == 1:
+            difficulty_normal_mode[GAME_DIFFICULTY_EASY] = scores
+        elif game_difficulty_count == 2:
+            difficulty_normal_mode[GAME_DIFFICULTY_MED] = scores
+        elif game_difficulty_count == 3:
+            difficulty_normal_mode[GAME_DIFFICULTY_HARD] = scores
+        elif game_difficulty_count == 4:
+            difficulty_normal_mode[GAME_DIFFICULTY_IMPOSSIBLE] = scores
+        game_difficulty_count += 1
+    
+    # Add difficulty dictionary to the highscore dictionary
+    highscore_dict[GAME_MODE_NORMAL] = difficulty_normal_mode
+    
+    game_difficulty_count = 1
+    
+    # Timer mode
+    difficulty_timer_mode = {}
+    while(game_difficulty_count <= gd.NUM_OF_DIFFICULTIES):
+        scores = []
+        # Create empty highscore list
+        for score_count in range(0, gd.HIGHSCORE_LIST_SIZE):
+            scores.append(0)
+        # Create difficulty dictionary
+        if game_difficulty_count == 1:
+            difficulty_timer_mode[GAME_DIFFICULTY_EASY] = scores
+        elif game_difficulty_count == 2:
+            difficulty_timer_mode[GAME_DIFFICULTY_MED] = scores
+        elif game_difficulty_count == 3:
+            difficulty_timer_mode[GAME_DIFFICULTY_HARD] = scores
+        elif game_difficulty_count == 4:
+            difficulty_timer_mode[GAME_DIFFICULTY_IMPOSSIBLE] = scores
+        game_difficulty_count += 1
+        
+    # Add difficulty dictionary to the highscore dictionary
+    highscore_dict[GAME_MODE_TIMER] = difficulty_timer_mode
+    
+def update_highscore(score):
+    global highscore_dict
+    # Add the new score, sort the list, and remove the last element that is not within the defined top size (ex: top 10)
+    highscore_dict[game_mode][game_difficulty].append(score)
+    highscore_dict[game_mode][game_difficulty].sort(reverse=True)
+    highscore_dict[game_mode][game_difficulty].pop()
     
 def load_highscore():
+    global highscore_dict
+    
     try:
         with open(gd.HIGHSCORE_FILE_NAME) as csv_file:
             csv_reader = csv.DictReader(csv_file)
             line_count = 0
             for row in csv_reader:
-                if line_count == 0:
-                    line_count += 1                
-                highscore_dict[line_count] = row["Score"]
+                # Ignore the header
+#                 if line_count == 0:
+#                     line_count += 1
+#                     continue 
+                
+                # Reset line_count for loading scores of the next difficulty
+                if line_count >= gd.HIGHSCORE_LIST_SIZE:
+                    line_count = 0
+                     
+                highscore_dict[row["GAME_MODE"]][row["DIFFICULTY"]][line_count] = int(row["SCORE"])
                 line_count += 1
     except FileNotFoundError:
         print("Highscore file does not exist!")
         
 def save_highscore():
-    if len(highscore_dict) == 0:
-        return
     
     try:
         with open(gd.HIGHSCORE_FILE_NAME, mode='w') as csv_file:
-            fieldnames = ["Rank","Score"]
+            fieldnames = ["GAME_MODE","DIFFICULTY","SCORE"]
                 
             writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
             writer.writeheader()
-            for line_count in range(1,len(highscore_dict)):
-                writer.writerow({'Rank': line_count, 'Score': highscore_dict[line_count]})
+            for key_game_mode in highscore_dict.keys():
+                for key_difficulty in highscore_dict[key_game_mode].keys():
+                    for score in highscore_dict[key_game_mode][key_difficulty]:
+                        writer.writerow({'GAME_MODE': key_game_mode, 'DIFFICULTY': key_difficulty, 'SCORE': score})
     except Exception as e:
-        print(e, type(e))
+        print("Unexpected error:", sys.exc_info()[1])
+   
+# Initialize highscore list
+initialize_highscore_list()   
    
 # Load high scores
 load_highscore()
@@ -264,9 +327,12 @@ while not done:
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 done = True
-            # Select difficulty
+            # Select controller
             elif event.key == pygame.K_RETURN and game_state == GAME_STATE_MENU:
                 game_state = GAME_STATE_SELECT_CONTROLLER
+            elif event.key == pygame.K_F12 and game_state == GAME_STATE_MENU:
+                highscore_game_mode_count = 0
+                game_state = GAME_STATE_SELECT_HIGHSCORE_MODE
             # Return to main menu
             elif event.key == pygame.K_SPACE:
                 game_state = GAME_STATE_MENU
@@ -302,20 +368,28 @@ while not done:
                 game_state = GAME_STATE_COUNTDOWN
             # -- Difficulty --
             # -- Game Mode --
-            elif (event.key == pygame.K_1 or event.key == pygame.K_KP1) and game_state == GAME_STATE_SELECT_MODE:
+            elif (event.key == pygame.K_1 or event.key == pygame.K_KP1) and game_state == GAME_STATE_SELECT_GAME_MODE:
                 game_mode = GAME_MODE_NORMAL
                 game_state = GAME_STATE_SELECT_DIFFICULTY
-            elif (event.key == pygame.K_2 or event.key == pygame.K_KP2) and game_state == GAME_STATE_SELECT_MODE:
+            elif (event.key == pygame.K_2 or event.key == pygame.K_KP2) and game_state == GAME_STATE_SELECT_GAME_MODE:
                 game_mode = GAME_MODE_TIMER
                 game_state = GAME_STATE_SELECT_DIFFICULTY
+            # -- End Game Mode --
+            # -- Game Mode --
+            elif (event.key == pygame.K_1 or event.key == pygame.K_KP1) and game_state == GAME_STATE_SELECT_HIGHSCORE_MODE:
+                highscore_view_mode = GAME_MODE_NORMAL
+                game_state = GAME_STATE_VIEW_HIGHSCORE
+            elif (event.key == pygame.K_2 or event.key == pygame.K_KP2) and game_state == GAME_STATE_SELECT_HIGHSCORE_MODE:
+                highscore_view_mode = GAME_MODE_TIMER
+                game_state = GAME_STATE_VIEW_HIGHSCORE
             # -- End Game Mode --
             # -- Controller Mode --
             elif (event.key == pygame.K_1 or event.key == pygame.K_KP1) and game_state == GAME_STATE_SELECT_CONTROLLER:
                 game_controller = gd.GAME_CONTROLLER_MOUSE
-                game_state = GAME_STATE_SELECT_MODE
+                game_state = GAME_STATE_SELECT_GAME_MODE
             elif (event.key == pygame.K_2 or event.key == pygame.K_KP2) and game_state == GAME_STATE_SELECT_CONTROLLER:
                 game_controller = gd.GAME_CONTROLLER_KEYBOARD
-                game_state = GAME_STATE_SELECT_MODE
+                game_state = GAME_STATE_SELECT_GAME_MODE
             # -- End Controller Mode --
             # -- ship_sprite controlled by Keyboard -- Set the speed based on the key pressed
             elif event.key == pygame.K_LEFT:
@@ -499,6 +573,10 @@ while not done:
         screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, text_y])
         text_y += text.get_rect().height
         
+        text = title_font_1.render("Press F12 to view high scores", True, WHITE)
+        screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, text_y])
+        text_y += text.get_rect().height
+        
         text = title_font_1.render("Press ENTER to play", True, WHITE)
         screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, text_y])
         text_y += text.get_rect().height
@@ -542,7 +620,7 @@ while not done:
         text = title_font_1.render("4 - Impossible", True, WHITE)
         screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, text_y])
         text_y += text.get_rect().height
-    elif game_state == GAME_STATE_SELECT_MODE:
+    elif game_state == GAME_STATE_SELECT_GAME_MODE:
         pygame.mouse.set_visible(1)
         
         # Text height will be increased every time a new line of text is created
@@ -570,6 +648,49 @@ while not done:
         text = title_font_1.render("2 - Keyboard", True, WHITE)
         screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, text_y])
         text_y += text.get_rect().height
+    elif game_state == GAME_STATE_SELECT_HIGHSCORE_MODE:
+        pygame.mouse.set_visible(1)
+        
+        # Text height will be increased every time a new line of text is created
+        text_y = gd.SCREEN_HEIGHT/2 - text.get_rect().height/2
+        text = title_font_1.render("Select a highscore view mode:", True, WHITE)
+        screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, text_y])
+        text_y += text.get_rect().height
+        text = title_font_1.render("1 - Normal", True, WHITE)
+        screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, text_y])
+        text_y += text.get_rect().height
+        text = title_font_1.render("2 - Timer", True, WHITE)
+        screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, text_y])
+        text_y += text.get_rect().height
+    elif game_state == GAME_STATE_VIEW_HIGHSCORE:
+        pygame.mouse.set_visible(1)
+        
+        # Text height will be increased every time a new line of text is created
+        text_y = gd.SCREEN_HEIGHT/2 * 0.25 - text.get_rect().height/2
+        text = title_font_1.render("HIGH SCORES", True, WHITE)
+        screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, text_y])
+        text_y += text.get_rect().height
+        text = title_font_1.render("Mode: " + str(highscore_view_mode), True, WHITE)
+        screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, text_y])
+        text_y += text.get_rect().height
+        text_y += text.get_rect().height
+        
+        difficulty_count = 1;
+        old_text_y = text_y
+        for key_difficulty in highscore_dict[highscore_view_mode].keys():
+            # Make all score columns at the same height
+            text_y = old_text_y
+            
+            text = title_font_1.render(key_difficulty, True, WHITE)
+            screen.blit(text, [gd.SCREEN_WIDTH/2 * 0.4 * difficulty_count - text.get_rect().width/2, text_y])
+            text_y += text.get_rect().height
+            
+            for score in highscore_dict[highscore_view_mode][key_difficulty]:
+                text = title_font_1.render(str(score), True, WHITE)
+                screen.blit(text, [gd.SCREEN_WIDTH/2 * 0.4 * difficulty_count - text.get_rect().width/2, text_y])
+                text_y += text.get_rect().height
+                
+            difficulty_count += 1
  
     # --- Wrap-up
     # Limit frames per second
