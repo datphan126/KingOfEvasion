@@ -1,14 +1,14 @@
 GAME_MODE,DIFFICULTY,SCORE
+Normal Mode,EASY,29
 Normal Mode,EASY,19
 Normal Mode,EASY,17
 Normal Mode,EASY,4
 Normal Mode,EASY,3
+Normal Mode,EASY,3
+Normal Mode,EASY,1
 Normal Mode,EASY,0
 Normal Mode,EASY,0
 Normal Mode,EASY,0
-Normal Mode,EASY,0
-Normal Mode,EASY,0
-Normal Mode,EASY,0
 Normal Mode,MEDIUM,0
 Normal Mode,MEDIUM,0
 Normal Mode,MEDIUM,0
@@ -19,8 +19,8 @@ Normal Mode,MEDIUM,0
 Normal Mode,MEDIUM,0
 Normal Mode,MEDIUM,0
 Normal Mode,MEDIUM,0
+Normal Mode,HARD,13
 Normal Mode,HARD,1
-Normal Mode,HARD,0
 Normal Mode,HARD,0
 Normal Mode,HARD,0
 Normal Mode,HARD,0

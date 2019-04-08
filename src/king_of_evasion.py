@@ -36,6 +36,7 @@ GAME_STATE_SELECT_GAME_MODE = "SELECT GAME MODE"
 GAME_STATE_SELECT_CONTROLLER = "SELECT CONTROLLER"
 GAME_STATE_VIEW_HIGHSCORE = "VIEW HIGHSCORE"
 GAME_STATE_SELECT_HIGHSCORE_MODE = "SELECT HIGHSCORE MODE"
+GAME_STATE_PAUSED = "GAME PAUSED"
 
 # Game Difficulty definition
 GAME_DIFFICULTY_EASY = "EASY"
@@ -115,8 +116,8 @@ music_list.append("ForestFunk.mp3")
 # Highscore dict
 highscore_dict = {}
 
-# Create ship sprite
-ship = ship_sprite.Ship(gd.PLAYER_IMG,[gd.SHIP_RADIUS,gd.SHIP_RADIUS])
+# Create ship sprite in the center of the screen
+ship = ship_sprite.Ship(gd.PLAYER_IMG,[gd.SCREEN_WIDTH/2 - gd.SHIP_RADIUS, gd.SCREEN_HEIGHT/2 - gd.SHIP_RADIUS])
 
 # Create reward sprite
 reward_item = reward_sprite.Reward(gd.REWARD_IMG, [0, 0])
@@ -152,6 +153,13 @@ def create_asteroids():
             collision_list = pygame.sprite.spritecollide(asteroid, asteroid_list, False)
             if len(collision_list) == 0:
                 is_collided = False
+                
+            # Don't spawn asteroid in the center of the screen
+            center_x = gd.SCREEN_WIDTH/2
+            center_y = gd.SCREEN_HEIGHT/2
+            if asteroid.rect.x >= (center_x - gd.ASTEROID_RADIUS) and asteroid.rect.x <= (center_x + gd.ASTEROID_RADIUS) \
+            and asteroid.rect.y >= (center_y - gd.ASTEROID_RADIUS) and asteroid.rect.y <= (center_y + gd.ASTEROID_RADIUS):
+                is_collided = True
         
         asteroid_list.add(asteroid)
         # Reset is_collied for verifying the next new asteroid
@@ -203,8 +211,8 @@ def reset_stat():
     global tick_count
     tick_count = 0
     global ship
-    ship.rect.x = gd.SHIP_RADIUS
-    ship.rect.y = gd.SHIP_RADIUS
+    ship.rect.x = gd.SCREEN_WIDTH/2 - gd.SHIP_RADIUS
+    ship.rect.y = gd.SCREEN_HEIGHT/2 - gd.SHIP_RADIUS
     global countdown
     countdown = 3
     create_asteroids()
@@ -333,6 +341,10 @@ while not done:
             elif event.key == pygame.K_F12 and game_state == GAME_STATE_MENU:
                 highscore_game_mode_count = 0
                 game_state = GAME_STATE_SELECT_HIGHSCORE_MODE
+            elif event.key == pygame.K_F5 and game_state == GAME_STATE_PLAY:
+                game_state = GAME_STATE_PAUSED
+            elif event.key == pygame.K_F5 and game_state == GAME_STATE_PAUSED:
+                game_state = GAME_STATE_PLAY
             # Return to main menu
             elif event.key == pygame.K_SPACE:
                 game_state = GAME_STATE_MENU
@@ -546,7 +558,7 @@ while not done:
         text = normal_font.render("Press BACKSPACE to retry", True, WHITE)
         screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, text_y])
         text_y += text.get_rect().height
-        text = normal_font.render("Press SPACE BAR to return to main menu", True, WHITE)
+        text = normal_font.render("Press SPACE BAR to return to the main menu", True, WHITE)
         screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, text_y])
         text_y += text.get_rect().height
         
@@ -584,8 +596,13 @@ while not done:
         # Reset all stats and create asteroids based on selected difficulty and screen size
         if countdown == 3:
             reset_stat()
+            
+        text = normal_font.render("Press F5 to pause the game", True, WHITE)
+        screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, 0])
+                
         # Show the ship cursor
         pygame.mouse.set_visible(1)
+        
         if countdown < 0:
             game_state = GAME_STATE_PLAY
         else:
@@ -600,6 +617,32 @@ while not done:
                 screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, gd.SCREEN_HEIGHT/2 - text.get_rect().height/2])
             countdown -= 1
         pygame.time.delay(1000)
+    elif game_state == GAME_STATE_PAUSED:
+        # Show the ship cursor
+        pygame.mouse.set_visible(1)
+        
+        # Draw the asteroids
+        for asteroid in asteroid_list:
+            screen.blit(asteroid.image, [asteroid.rect.x - gd.ASTEROID_RADIUS, asteroid.rect.y - gd.ASTEROID_RADIUS])
+            
+        # Draw score
+        text = normal_font.render("Score: " + str(score), True, WHITE)
+        screen.blit(text, [gd.SCREEN_WIDTH - 100, 0])
+        
+        # Draw ship    
+        screen.blit(ship.image, [ship.rect.x - gd.SHIP_RADIUS, ship.rect.y - gd.SHIP_RADIUS])
+        
+        # Draw reward item - Only draw when reward item status has already spwaned
+        if reward_item_status == True:
+            screen.blit(reward_item.image, [reward_item.rect.x - gd.REWARD_RADIUS, reward_item.rect.y - gd.REWARD_RADIUS])
+            
+        text_y = gd.SCREEN_HEIGHT/2 - text.get_rect().height/2
+        text = countdown_font.render("GAME PAUSED", True, WHITE)
+        screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, text_y])
+        text_y += text.get_rect().height
+        
+        text = normal_font.render("Press F5 to unpause the game", True, WHITE)
+        screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, text_y])
     elif game_state == GAME_STATE_SELECT_DIFFICULTY:
         pygame.mouse.set_visible(1)
         
