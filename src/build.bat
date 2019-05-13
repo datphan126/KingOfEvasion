@@ -1,1 +1,1 @@
-pyinstaller --clean -F --add-data="GameOver.mp3;." --add-data="TheGraveyard.mp3;." --add-data="DevilDragonBossFight.mp3;." --add-data="MikeTysonBattle.mp3;." --add-data="ForestFunk.mp3;." --add-data="Space2.jpg;." --add-data="ufo.png;." --add-data="star.png;." --add-data="Asteroid.png;." king_of_evasion.py
+pyinstaller --clean -F --add-data="data\\sound\\*.mp3;data\\sound" --add-data="data\\images\\*.png;data\\images" --add-data="data\\images\\*.jpg;data\\images" king_of_evasion.py

@@ -48,6 +48,10 @@ GAME_DIFFICULTY_IMPOSSIBLE = "IMPOSSIBLE"
 GAME_MODE_NORMAL = "Normal Mode"
 GAME_MODE_TIMER = "Timer Mode"
 
+# Game and screen
+screen = None
+game = None
+
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
     base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
@@ -99,10 +103,10 @@ class Game(object):
         
         # Create music list
         self.music_list = []
-        self.music_list.append("TheGraveyard.mp3")
-        self.music_list.append("DevilDragonBossFight.mp3")
-        self.music_list.append("MikeTysonBattle.mp3")
-        self.music_list.append("ForestFunk.mp3")
+        self.music_list.append(gd.MUSIC_01)
+        self.music_list.append(gd.MUSIC_02)
+        self.music_list.append(gd.MUSIC_03)
+        self.music_list.append(gd.MUSIC_04)
         
         # Highscore dict
         self.highscore_dict = {}
@@ -181,9 +185,10 @@ class Game(object):
         self.update_highscore()
         self.game_state = GAME_STATE_OVER
         pygame.mixer.music.stop()
-        pygame.mixer.music.load(resource_path("GameOver.mp3"))
+        pygame.mixer.music.load(resource_path(gd.GAMEOVER_SOUND))
         pygame.mixer.music.set_endevent(pygame.constants.USEREVENT)
         pygame.mixer.music.play()
+        fadeGameoverMenu()
             
     def reset_stat(self):
         self.score = 0
@@ -285,9 +290,61 @@ class Game(object):
             print("Unexpected error:", sys.exc_info()[1])
 
 # End Game class   
+
+# This method is for drawing created game objects like ship, asteroids, star, and score
+def drawGameObjects():
+    global screen, game
+    # Draw the asteroids
+    for asteroid in game.asteroid_list:
+        screen.blit(asteroid.image, [asteroid.rect.x - gd.ASTEROID_RADIUS, asteroid.rect.y - gd.ASTEROID_RADIUS])
+        
+    # Draw score
+    text = game.normal_font.render("Score: " + str(game.score), True, WHITE)
+    screen.blit(text, [gd.SCREEN_WIDTH - 100, 0])
+    
+    # Draw ship    
+    screen.blit(game.ship.image, [game.ship.rect.x - gd.SHIP_RADIUS, game.ship.rect.y - gd.SHIP_RADIUS])
+    
+    # Draw reward item - Only draw when reward item status has already spwaned
+    if game.reward_item_status == True:
+        screen.blit(game.reward_item.image, [game.reward_item.rect.x - gd.REWARD_RADIUS, game.reward_item.rect.y - gd.REWARD_RADIUS])
+
+# Draw Game Over Menu
+def drawGameOverMenu():
+    screen.fill([0,0,0])
+    text = game.title_font_1.render("GAME OVER", True, WHITE)
+    # Text height will be increased every time a new line of text is created
+    text_y = gd.SCREEN_HEIGHT/2 - text.get_rect().height/2
+    screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, text_y])
+    text_y += text.get_rect().height
+    text = game.normal_font.render(game.game_difficulty + " - Score: " + str(game.score), True, WHITE)
+    screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, text_y])
+    text_y += text.get_rect().height
+    text = game.normal_font.render("Press BACKSPACE to retry", True, WHITE)
+    screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, text_y])
+    text_y += text.get_rect().height
+    text = game.normal_font.render("Press SPACE BAR to return to the main menu", True, WHITE)
+    screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, text_y])
+    text_y += text.get_rect().height
+
+# Fading effect for game over menu
+def fadeGameoverMenu(): 
+    fade = pygame.Surface((gd.SCREEN_WIDTH, gd.SCREEN_HEIGHT))
+    fade.fill((0,0,0))
+    # for alpha in range(50, 300):
+    alpha = 0
+    while alpha <= 400:
+        fade.set_alpha(alpha)
+        alpha += 5
+        # screen.fill([0,0,0])
+        screen.blit(game.background.image, game.background.rect)
+        drawGameObjects()
+        screen.blit(fade, (0,0))
+        pygame.display.update()
             
 def main():
-    
+    global screen, game
+
     pygame.init()
  
     # Set the height and width of the screen
@@ -306,7 +363,7 @@ def main():
     clock = pygame.time.Clock()
    
     # Initialize Game object
-    game = Game();
+    game = Game()
    
     # Initialize highscore list
     game.initialize_highscore_list()   
@@ -371,7 +428,7 @@ def main():
                     game.timer_limit = gd.TIMER_LIMIT_IMPOSSIBLE
                     game.calculate_asteroid_limit()
                     game.game_state = GAME_STATE_COUNTDOWN
-                # -- Difficulty --
+                # -- End Difficulty --
                 # -- Game Mode --
                 elif (event.key == pygame.K_1 or event.key == pygame.K_KP1) and game.game_state == GAME_STATE_SELECT_GAME_MODE:
                     game.game_mode = GAME_MODE_NORMAL
@@ -425,9 +482,8 @@ def main():
             elif event.type == pygame.constants.USEREVENT:
                     if game.game_state != GAME_STATE_OVER:
                         game.play_background_music()
-     
+
         # Set the screen background
-        screen.fill([255, 255, 255])
         screen.blit(game.background.image, game.background.rect)
         
         if game.game_state == GAME_STATE_PLAY:
@@ -528,32 +584,19 @@ def main():
                 # Move asteroids
                 for asteroid in game.asteroid_list:
                     asteroid.move_asteroid()
-                    
-                # Check if any asteroid collides with the ship
-                game.check_collision_with_ship()
-                
+
                 # Draw the asteroids
                 for asteroid in game.asteroid_list:
                     screen.blit(asteroid.image, [asteroid.rect.x - gd.ASTEROID_RADIUS, asteroid.rect.y - gd.ASTEROID_RADIUS])
+                    
+                # Check if any asteroid collides with the ship
+                game.check_collision_with_ship()
                 
         elif game.game_state == GAME_STATE_OVER:
             # Show the ship cursor
             pygame.mouse.set_visible(1)
             
-            text = game.title_font_1.render("GAME OVER", True, WHITE)
-            # Text height will be increased every time a new line of text is created
-            text_y = gd.SCREEN_HEIGHT/2 - text.get_rect().height/2
-            screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, text_y])
-            text_y += text.get_rect().height
-            text = game.normal_font.render(game.game_difficulty + " - Score: " + str(game.score), True, WHITE)
-            screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, text_y])
-            text_y += text.get_rect().height
-            text = game.normal_font.render("Press BACKSPACE to retry", True, WHITE)
-            screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, text_y])
-            text_y += text.get_rect().height
-            text = game.normal_font.render("Press SPACE BAR to return to the main menu", True, WHITE)
-            screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, text_y])
-            text_y += text.get_rect().height
+            drawGameOverMenu()
             
         elif game.game_state == GAME_STATE_MENU:
             # Show the ship cursor
@@ -602,6 +645,7 @@ def main():
                 # Draw the asteroids
                 for asteroid in game.asteroid_list:
                     screen.blit(asteroid.image, [asteroid.rect.x - gd.ASTEROID_RADIUS, asteroid.rect.y - gd.ASTEROID_RADIUS])
+                    
                 if game.countdown == 0:
                     text = game.countdown_font.render("GO", True, WHITE)
                     screen.blit(text, [gd.SCREEN_WIDTH/2 - text.get_rect().width/2, gd.SCREEN_HEIGHT/2 - text.get_rect().height/2])
@@ -614,20 +658,8 @@ def main():
             # Show the ship cursor
             pygame.mouse.set_visible(1)
             
-            # Draw the asteroids
-            for asteroid in game.asteroid_list:
-                screen.blit(asteroid.image, [asteroid.rect.x - gd.ASTEROID_RADIUS, asteroid.rect.y - gd.ASTEROID_RADIUS])
-                
-            # Draw score
-            text = game.normal_font.render("Score: " + str(game.score), True, WHITE)
-            screen.blit(text, [gd.SCREEN_WIDTH - 100, 0])
-            
-            # Draw ship    
-            screen.blit(game.ship.image, [game.ship.rect.x - gd.SHIP_RADIUS, game.ship.rect.y - gd.SHIP_RADIUS])
-            
-            # Draw reward item - Only draw when reward item status has already spwaned
-            if game.reward_item_status == True:
-                screen.blit(game.reward_item.image, [game.reward_item.rect.x - gd.REWARD_RADIUS, game.reward_item.rect.y - gd.REWARD_RADIUS])
+            # Draw game objects
+            drawGameObjects()
                 
             text_y = gd.SCREEN_HEIGHT/2 - text.get_rect().height/2
             text = game.countdown_font.render("GAME PAUSED", True, WHITE)

@@ -34,11 +34,18 @@ ASTEROID_RADIUS = 50
 # Speed of balls increases after players get a specific amount of points 
 SPEED_INCREASE_POINTS = 10
 
+# Sound
+GAMEOVER_SOUND = "data\\sound\\GameOver.mp3"
+MUSIC_01 = "data\\sound\\TheGraveyard.mp3"
+MUSIC_02 = "data\\sound\\DevilDragonBossFight.mp3"
+MUSIC_03 = "data\\sound\\MikeTysonBattle.mp3"
+MUSIC_04 = "data\\sound\\ForestFunk.mp3"
+
 # Images
-ASTEROID_IMG = "Asteroid.png"
-BACKGROUND_IMG = "Space2.jpg"
-PLAYER_IMG = "ufo.png"
-REWARD_IMG = "star.png"
+ASTEROID_IMG = "data\\images\\Asteroid.png"
+BACKGROUND_IMG = "data\\images\\Space2.jpg"
+PLAYER_IMG = "data\\images\\ufo.png"
+REWARD_IMG = "data\\images\\star.png"
 
 # Timer limit - In seconds
 TIMER_LIMIT_EASY = 15
