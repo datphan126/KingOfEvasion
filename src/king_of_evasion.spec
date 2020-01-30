@@ -1,10 +1,10 @@
-# -*- mode: python -*-
+# -*- mode: python ; coding: utf-8 -*-
 
 block_cipher = None
 
 
 a = Analysis(['king_of_evasion.py'],
-             pathex=['C:\\Users\\sojin\\git\\KingOfEvasion\\src'],
+             pathex=['C:\\Users\\Sojin\\git\\KingOfEvasion\\src'],
              binaries=[],
              datas=[('data\\\\sound\\\\*.mp3', 'data\\\\sound'), ('data\\\\images\\\\*.png', 'data\\\\images'), ('data\\\\images\\\\*.jpg', 'data\\\\images')],
              hiddenimports=[],
@@ -28,5 +28,6 @@ exe = EXE(pyz,
           bootloader_ignore_signals=False,
           strip=False,
           upx=True,
+          upx_exclude=[],
           runtime_tmpdir=None,
           console=True )
